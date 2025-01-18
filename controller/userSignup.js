@@ -3,10 +3,10 @@ const bcrypt = require('bcryptjs');
 
 const userSignup = async (req, res) => {
     try {
-        const { nickname, email, password, retypePassword } = req.body;
+        const { nickname, email, password, retypepassword } = req.body;
 
         // Basic validation checks
-        if (!nickname || !email || !password || !retypePassword) {
+        if (!nickname || !email || !password || !retypepassword) {
             return res.status(400).json({
                 success: false,
                 message: 'All fields are required'
@@ -33,13 +33,7 @@ const userSignup = async (req, res) => {
             });
         }
 
-        // Check if passwords match
-        if (password !== retypePassword) {
-            return res.status(400).json({
-                success: false,
-                message: 'Passwords do not match'
-            });
-        }
+        
 
         // Check if nickname is already taken
         const existingNickname = await User.findOne({ nickname: normalizedNickname });
@@ -105,31 +99,5 @@ const userSignup = async (req, res) => {
     }
 };
 
-// Helper function to generate nickname suggestions
-async function generateNicknameSuggestions(nickname) {
-    const suggestions = [];
-    const suffixes = ['123', '_2', '_new', '22', '_cool'];
-    
-    for (let suffix of suffixes) {
-        const suggestion = nickname + suffix;
-        if (suggestion.length <= 10) {  // Ensure suggestion meets length requirement
-            const exists = await User.findOne({ nickname: suggestion });
-            if (!exists) {
-                suggestions.push(suggestion);
-            }
-        }
-    }
-
-    // Add random number suggestion if we have few suggestions
-    if (suggestions.length < 3) {
-        const randomNum = Math.floor(Math.random() * 999);
-        const randomSuggestion = `${nickname.slice(0, 7)}${randomNum}`.slice(0, 10);
-        if (!(await User.findOne({ nickname: randomSuggestion }))) {
-            suggestions.push(randomSuggestion);
-        }
-    }
-
-    return suggestions.slice(0, 3); // Return up to 3 suggestions
-}
 
 module.exports = { userSignup };
