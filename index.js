@@ -15,7 +15,7 @@ app.use(express.json());
 
 // CORS configuration
 const corsOptions = {
-    origin: 'http://localhost:3001',  // Your frontend URL
+    origin: 'http://localhost:3000',  // Your frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -26,7 +26,7 @@ app.use(cors(corsOptions));
 
 // Add these headers to all responses
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');

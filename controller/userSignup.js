@@ -35,16 +35,6 @@ const userSignup = async (req, res) => {
 
         
 
-        // Check if nickname is already taken
-        const existingNickname = await User.findOne({ nickname: normalizedNickname });
-        if (existingNickname) {
-            return res.status(400).json({
-                success: false,
-                message: 'This nickname is already taken. Please choose another one.',
-                suggestions: await generateNicknameSuggestions(normalizedNickname)
-            });
-        }
-
         // Check if email is already registered
         const existingEmail = await User.findOne({ email: email.toLowerCase() });
         if (existingEmail) {
