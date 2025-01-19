@@ -34,9 +34,12 @@ const userLogin = async (req, res) => {
             });
         }
 
-        // Generate JWT token
+        // Generate JWT token - Changed userId to id to match what backend expects
         const token = jwt.sign(
-            { userId: user._id, nickname: user.nickname },
+            { 
+                id: user._id,  // Changed from userId to id
+                nickname: user.nickname 
+            },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
