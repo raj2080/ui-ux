@@ -1,6 +1,9 @@
+
+
+
 // backend/controller/confessionController.js
 const Confession = require('../models/confessionModel');
-const User = require('../models/userModel'); // Add this line to get user model
+const User = require('../models/userModel');
 
 // Helper function for consistent datetime format
 const getCurrentDateTime = () => {
@@ -32,11 +35,6 @@ const sendErrorResponse = (res, statusCode, message, error) => {
 // Create a new confession
 const createConfession = async (req, res) => {
     try {
-        console.log('Creating confession. Request body:', {
-            ...req.body,
-            file: req.file ? 'File present' : 'No file'
-        });
-
         const { title, content, category, isAnonymous } = req.body;
         const imageUrl = req.file ? req.file.path : null;
         const currentDateTime = getCurrentDateTime();
@@ -70,18 +68,12 @@ const createConfession = async (req, res) => {
 
         await confession.save();
 
-        console.log('Confession created successfully:', {
-            id: confession._id,
-            author: userNickname, // Use nickname instead of ID
-            timestamp: currentDateTime
-        });
-
         res.status(201).json({
             success: true,
             message: 'Confession created successfully',
             confession: {
                 ...confession.toObject(),
-                authorNickname: userNickname // Include nickname in response
+                authorNickname: userNickname
             },
             timestamp: currentDateTime
         });
@@ -99,7 +91,6 @@ const getAllConfessions = async (req, res) => {
 
         const totalConfessions = await Confession.countDocuments();
         const confessions = await Confession.find()
-            .populate('author', 'nickname') // Only populate nickname
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
@@ -112,7 +103,7 @@ const getAllConfessions = async (req, res) => {
             totalPages: Math.ceil(totalConfessions / limit),
             confessions: confessions.map(conf => ({
                 ...conf.toObject(),
-                authorNickname: conf.author?.nickname || 'anonymous'
+                authorNickname: conf.author
             })),
             timestamp: getCurrentDateTime()
         });
@@ -121,16 +112,17 @@ const getAllConfessions = async (req, res) => {
     }
 };
 
-// Get user's confessions with pagination
+// Get user's own confessions with pagination
 const getMyConfessions = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+
         const userNickname = await getCurrentUser(req.user._id);
 
-        const totalConfessions = await Confession.countDocuments({ author: req.user._id });
-        const confessions = await Confession.find({ author: req.user._id })
+        const totalConfessions = await Confession.countDocuments({ author: userNickname });
+        const confessions = await Confession.find({ author: userNickname })
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
@@ -170,7 +162,7 @@ const updateConfession = async (req, res) => {
         }
 
         // Check if user is the author
-        if (confession.author.toString() !== req.user._id.toString()) {
+        if (confession.author !== userNickname) {
             return sendErrorResponse(res, 403, 'Not authorized', {
                 message: 'You are not authorized to update this confession'
             });
@@ -182,7 +174,6 @@ const updateConfession = async (req, res) => {
             category,
             isAnonymous,
             ...(imageUrl && { imageUrl }),
-            authorNickname: userNickname, // Update nickname
             updatedAt: currentDateTime
         };
 
@@ -191,12 +182,6 @@ const updateConfession = async (req, res) => {
             updateData,
             { new: true, runValidators: true }
         );
-
-        console.log('Confession updated:', {
-            id: updatedConfession._id,
-            author: userNickname, // Use nickname
-            timestamp: currentDateTime
-        });
 
         res.status(200).json({
             success: true,
@@ -226,19 +211,13 @@ const deleteConfession = async (req, res) => {
         }
 
         // Check if user is the author
-        if (confession.author.toString() !== req.user._id.toString()) {
+        if (confession.author !== userNickname) {
             return sendErrorResponse(res, 403, 'Not authorized', {
                 message: 'You are not authorized to delete this confession'
             });
         }
 
         await confession.deleteOne();
-
-        console.log('Confession deleted:', {
-            id: confession._id,
-            author: userNickname, // Use nickname
-            timestamp: getCurrentDateTime()
-        });
 
         res.status(200).json({
             success: true,

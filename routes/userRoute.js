@@ -1,4 +1,3 @@
-// backend/routes/userRoute.js
 const express = require('express');
 const router = express.Router();
 const path = require('path');
@@ -11,10 +10,11 @@ const CURRENT_USER = '2025raj';
 // Import controllers
 const { userSignup } = require('../controller/userSignup');
 const { userLogin } = require('../controller/userLogin');
-const authMiddleware = require('../middleware/auth'); // Changed back to auth
+const authMiddleware = require('../middleware/auth');
 const userProfileController = require('../controller/userProfile');
 const { forgotPassword, resetPassword } = require('../controller/forgotPassword');
 const confessionController = require('../controller/confessionController');
+const { createContactUs } = require('../controller/contactUsController'); // Import ContactUs controller
 
 // Create uploads directory
 const uploadsDir = path.join(__dirname, '..', 'uploads', 'confessions');
@@ -124,6 +124,12 @@ router.delete(
     '/confessions/:id',
     authMiddleware,
     routeHandler(confessionController.deleteConfession)
+);
+
+// Contact Us Routes
+router.post(
+    '/contactUs',
+    routeHandler(createContactUs)
 );
 
 // Error handling middleware
