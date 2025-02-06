@@ -33,14 +33,29 @@ const userSignup = async (req, res) => {
             });
         }
 
-        
-
         // Check if email is already registered
         const existingEmail = await User.findOne({ email: email.toLowerCase() });
         if (existingEmail) {
             return res.status(400).json({
                 success: false,
                 message: 'Email is already registered'
+            });
+        }
+
+        // Check password length and complexity
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be 8-16 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character'
+            });
+        }
+
+        // Check if passwords match
+        if (password !== retypepassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Passwords do not match'
             });
         }
 
@@ -52,7 +67,8 @@ const userSignup = async (req, res) => {
         const newUser = new User({
             nickname: normalizedNickname,
             email: email.toLowerCase(),
-            password: hashedPassword
+            password: hashedPassword,
+            passwordCreatedAt: Date.now() // Set password creation date
         });
 
         // Save user to database
@@ -70,13 +86,13 @@ const userSignup = async (req, res) => {
 
     } catch (error) {
         console.error('Signup error:', error);
-        
+
         // Handle MongoDB duplicate key error
         if (error.code === 11000) {
             return res.status(400).json({
                 success: false,
-                message: error.keyPattern.nickname 
-                    ? 'This nickname is already taken' 
+                message: error.keyPattern.nickname
+                    ? 'This nickname is already taken'
                     : 'This email is already registered'
             });
         }
@@ -88,6 +104,5 @@ const userSignup = async (req, res) => {
         });
     }
 };
-
 
 module.exports = { userSignup };

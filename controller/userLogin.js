@@ -1,6 +1,6 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); 
+const jwt = require('jsonwebtoken');
 
 const userLogin = async (req, res) => {
     try {
@@ -31,6 +31,16 @@ const userLogin = async (req, res) => {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
+            });
+        }
+
+        // Check if password has expired
+        const passwordAge = Date.now() - new Date(user.passwordCreatedAt).getTime();
+        const passwordExpiryTime = 2 * 60 * 1000; // 2 minutes in milliseconds
+        if (passwordAge > passwordExpiryTime) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password has expired. Please change your password.'
             });
         }
 

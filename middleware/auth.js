@@ -1,5 +1,5 @@
-// backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
+const User = require('../models/userModel');
 
 // Helper function for getting current datetime in UTC
 const getCurrentDateTime = () => {
@@ -24,6 +24,26 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid token structure',
+                timestamp: getCurrentDateTime()
+            });
+        }
+
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not found',
+                timestamp: getCurrentDateTime()
+            });
+        }
+
+        // Check if password has expired
+        const passwordAge = Date.now() - new Date(user.passwordCreatedAt).getTime();
+        const passwordExpiryTime = 2 * 60 * 1000; // 2 minutes in milliseconds
+        if (passwordAge > passwordExpiryTime) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password has expired. Please change your password.',
                 timestamp: getCurrentDateTime()
             });
         }

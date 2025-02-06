@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -28,20 +27,21 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: [true, 'Password is required'],
-        minlength: [6, 'Password must be at least 6 characters long']
+    },
+    passwordCreatedAt: {
+        type: Date,
+        default: Date.now,
+        required: true
     },
     createdAt: {
         type: Date,
         default: Date.now
     },
-    
-    // New fields for password reset functionality
     resetPasswordToken: {
         type: String,
         default: null
     },
-
-    resetpasswordExpiry: {
+    resetPasswordExpiry: {
         type: Date,
         default: null
     }
@@ -49,9 +49,13 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Create indexes for unique fields
-userSchema.index({ nickname: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { unique: true });
+// Pre-save middleware to update passwordCreatedAt
+userSchema.pre('save', function(next) {
+    if (this.isModified('password')) {
+        this.passwordCreatedAt = new Date();
+    }
+    next();
+});
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

@@ -1,5 +1,5 @@
-// controllers/forgotPassword.js
 const User = require('../models/userModel');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
@@ -10,17 +10,23 @@ const forgotPassword = async (req, res) => {
         // Find user by email
         const user = await User.findOne({ email });
         if (!user) {
+            console.log("User not found for email:", email);
             return res.status(404).json({ message: "User not found" });
         }
 
         // Generate reset token
-        const resetToken = crypto.randomBytes(20).toString('hex');
-        const resetTokenExpiry = Date.now() + 3600000; // Token valid for 1 hour
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + (15 * 60 * 1000)); // 15 minutes
 
-        // Save reset token to user
+        // Update user with reset token
         user.resetPasswordToken = resetToken;
         user.resetPasswordExpiry = resetTokenExpiry;
         await user.save();
+
+        // Verify token was saved
+        const updatedUser = await User.findOne({ email });
+        console.log("Token saved:", updatedUser.resetPasswordToken);
+        console.log("Token expiry saved:", updatedUser.resetPasswordExpiry);
 
         // Create email transporter
         const transporter = nodemailer.createTransport({
@@ -31,24 +37,43 @@ const forgotPassword = async (req, res) => {
             }
         });
 
-        // Email content
-        const resetUrl = `http://yourdomain.com/reset-password/${resetToken}`;
+        // Email content with current time
+        const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+        const currentTime = new Date();
         const mailOptions = {
             from: process.env.EMAIL_USERNAME,
             to: email,
             subject: 'Password Reset Request',
-            text: `You requested a password reset. Please click on the following link to reset your password: ${resetUrl}\n\nIf you didn't request this, please ignore this email.`
+            html: `
+                <h1>Password Reset Request</h1>
+                <p>You requested a password reset. Please click the link below to reset your password:</p>
+                <a href="${resetUrl}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+                <p>This link will expire in 15 minutes.</p>
+                <p>Current time: ${currentTime.toISOString()}</p>
+                <p>Link expires at: ${resetTokenExpiry.toISOString()}</p>
+                <p>If you didn't request this, please ignore this email.</p>
+            `
         };
 
         // Send email
         await transporter.sendMail(mailOptions);
-        
+
+        console.log({
+            message: "Reset token details",
+            token: resetToken,
+            expiry: resetTokenExpiry,
+            currentTime: currentTime
+        });
+
         res.status(200).json({ 
-            message: "Password reset link sent to email" 
+            success: true,
+            message: "Password reset link sent to email"
         });
 
     } catch (error) {
+        console.error("Error in forgot password process:", error);
         res.status(500).json({ 
+            success: false,
             message: "Error in forgot password process", 
             error: error.message 
         });
@@ -60,30 +85,50 @@ const resetPassword = async (req, res) => {
         const { token } = req.params;
         const { newPassword } = req.body;
 
-        // Find user by reset token and check if token is expired
+        const currentTime = new Date();
+        console.log("Reset attempt:", {
+            time: currentTime,
+            token: token
+        });
+
+        // Find user with valid token and check expiry
         const user = await User.findOne({
             resetPasswordToken: token,
-            resetPasswordExpiry: { $gt: Date.now() }
+            resetPasswordExpiry: { $gt: currentTime }
         });
 
         if (!user) {
+            console.log("Reset failed: Invalid or expired token");
             return res.status(400).json({
+                success: false,
                 message: "Invalid or expired reset token"
             });
         }
 
-        // Update password and clear reset token fields
-        user.password = newPassword;
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update user fields
+        user.password = hashedPassword;
+        user.passwordCreatedAt = new Date(); // Set current time
         user.resetPasswordToken = undefined;
         user.resetPasswordExpiry = undefined;
+        
         await user.save();
 
+        console.log("Password reset successful for user:", user.email);
+        console.log("New password created at:", user.passwordCreatedAt);
+
         res.status(200).json({ 
+            success: true,
             message: "Password reset successful" 
         });
 
     } catch (error) {
+        console.error("Error in reset password process:", error);
         res.status(500).json({ 
+            success: false,
             message: "Error in reset password process", 
             error: error.message 
         });

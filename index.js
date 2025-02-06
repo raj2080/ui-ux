@@ -13,7 +13,7 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 
-// Directory setup
+// Directory setup (ensure your directories are not exposed to the public)
 const setupDirectories = () => {
     const directories = [
         path.join(__dirname, 'uploads'),
@@ -55,11 +55,8 @@ const setupMiddleware = (app) => {
         next();
     });
 
-    // Serve static files
-    app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-        maxAge: '1d',
-        etag: true
-    }));
+    // Serve static files from the 'public' directory
+    app.use(express.static(path.join(__dirname, 'public')));
 };
 
 // Route Setup
