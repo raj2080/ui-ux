@@ -36,7 +36,7 @@ const userLogin = async (req, res) => {
 
         // Check if password has expired
         const passwordAge = Date.now() - new Date(user.passwordCreatedAt).getTime();
-        const passwordExpiryTime = 2 * 60 * 1000; // 2 minutes in milliseconds
+        const passwordExpiryTime = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
         if (passwordAge > passwordExpiryTime) {
             return res.status(400).json({
                 success: false,

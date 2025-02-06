@@ -42,7 +42,7 @@ const setupMiddleware = (app) => {
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     app.use(cors(corsOptions));
-    
+
     // Security Headers
     app.use((req, res, next) => {
         res.header('Access-Control-Allow-Origin', corsOptions.origin);
@@ -56,7 +56,11 @@ const setupMiddleware = (app) => {
     });
 
     // Serve static files from the 'public' directory
-    app.use(express.static(path.join(__dirname, 'public')));
+    // app.use(express.static(path.join(__dirname, 'public')));
+
+
+    // Add this line to serve files from the uploads directory
+    app.use('/uploads', express.static('uploads'));
 };
 
 // Route Setup
