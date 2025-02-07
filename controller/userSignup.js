@@ -24,7 +24,7 @@ const userSignup = async (req, res) => {
             });
         }
 
-        // Check if nickname contains valid characters (optional)
+        // Check if nickname contains valid characters
         const nicknameRegex = /^[a-zA-Z0-9_-]+$/;
         if (!nicknameRegex.test(normalizedNickname)) {
             return res.status(400).json({
@@ -59,16 +59,12 @@ const userSignup = async (req, res) => {
             });
         }
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Create new user
+        // Create new user (password hashing and history initialization handled by pre-save middleware)
         const newUser = new User({
             nickname: normalizedNickname,
             email: email.toLowerCase(),
-            password: hashedPassword,
-            passwordCreatedAt: Date.now() // Set password creation date
+            password: password,
+            passwordCreatedAt: new Date('2025-02-07 07:26:50')
         });
 
         // Save user to database

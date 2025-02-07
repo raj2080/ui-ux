@@ -39,7 +39,7 @@ const forgotPassword = async (req, res) => {
 
         // Email content with current time
         const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
-        const currentTime = new Date();
+        const currentTime = new Date('2025-02-07 07:26:50');
         const mailOptions = {
             from: process.env.EMAIL_USERNAME,
             to: email,
@@ -85,7 +85,7 @@ const resetPassword = async (req, res) => {
         const { token } = req.params;
         const { newPassword } = req.body;
 
-        const currentTime = new Date();
+        const currentTime = new Date('2025-02-07 07:26:50');
         console.log("Reset attempt:", {
             time: currentTime,
             token: token
@@ -105,13 +105,17 @@ const resetPassword = async (req, res) => {
             });
         }
 
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        // Check if the new password is in password history
+        const isInHistory = await user.isPasswordInHistory(newPassword);
+        if (isInHistory) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot reuse any of your last 5 passwords"
+            });
+        }
 
-        // Update user fields
-        user.password = hashedPassword;
-        user.passwordCreatedAt = new Date(); // Set current time
+        // Update user fields (password hashing handled by pre-save middleware)
+        user.password = newPassword;
         user.resetPasswordToken = undefined;
         user.resetPasswordExpiry = undefined;
         
