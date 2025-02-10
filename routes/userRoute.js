@@ -3,13 +3,9 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 
-// Constants
-const CURRENT_DATETIME = '2025-01-20 21:17:48';
-const CURRENT_USER = '2025raj';
-
 // Import controllers
 const { userSignup } = require('../controller/userSignup');
-const { userLogin } = require('../controller/userLogin');
+const { userLogin, logoutUser } = require('../controller/userLogin');
 const authMiddleware = require('../middleware/auth');
 const userProfileController = require('../controller/userProfile');
 const { forgotPassword, resetPassword } = require('../controller/forgotPassword');
@@ -52,7 +48,7 @@ const handleMulterError = (err, req, res, next) => {
             message: err.code === 'LIMIT_FILE_SIZE' 
                 ? 'File is too large. Maximum size is 5MB' 
                 : err.message,
-            timestamp: CURRENT_DATETIME
+            timestamp: new Date().toISOString()
         });
     }
     next(err);
@@ -70,6 +66,7 @@ const routeHandler = (fn) => async (req, res, next) => {
 // Auth Routes
 router.post('/signup', routeHandler(userSignup));
 router.post('/login', routeHandler(userLogin));
+router.post('/logout', routeHandler(logoutUser));
 router.post('/forgot-password', routeHandler(forgotPassword));
 router.post('/reset-password/:token', routeHandler(resetPassword));
 
@@ -137,7 +134,7 @@ router.use((err, req, res, next) => {
     console.error('Route Error:', {
         message: err.message,
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-        timestamp: CURRENT_DATETIME,
+        timestamp: new Date().toISOString(),
         path: req.path,
         method: req.method,
         user: req.user?.id || 'anonymous'
@@ -146,7 +143,7 @@ router.use((err, req, res, next) => {
     res.status(err.status || 500).json({
         success: false,
         message: err.message || 'Something went wrong',
-        timestamp: CURRENT_DATETIME,
+        timestamp: new Date().toISOString(),
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 });

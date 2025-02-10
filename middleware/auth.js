@@ -9,26 +9,41 @@ const getCurrentDateTime = () => {
 const authMiddleware = async (req, res, next) => {
     try {
         const token = req.header('Authorization')?.replace('Bearer ', '');
+        const { userId, cookie } = req.session;
 
-        if (!token) {
+        if (!token && !userId) {
             return res.status(401).json({
                 success: false,
-                message: 'No authentication token provided',
+                message: 'No authentication token or session provided',
                 timestamp: getCurrentDateTime()
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        if (!decoded.id) {
+        // Check for inactivity timeout
+        if (req.session.cookie.maxAge < 0) {
+            req.session.destroy();
             return res.status(401).json({
                 success: false,
-                message: 'Invalid token structure',
+                message: 'Session expired due to inactivity',
                 timestamp: getCurrentDateTime()
             });
         }
 
-        const user = await User.findById(decoded.id);
+        let user;
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            if (!decoded.id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid token structure',
+                    timestamp: getCurrentDateTime()
+                });
+            }
+            user = await User.findById(decoded.id);
+        } else {
+            user = await User.findById(userId);
+        }
+
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -39,7 +54,7 @@ const authMiddleware = async (req, res, next) => {
 
         // Check if password has expired
         const passwordAge = Date.now() - new Date(user.passwordCreatedAt).getTime();
-        const passwordExpiryTime =  90 * 24 * 60 * 60 * 1000; // 2 minutes in milliseconds  2*60*1000;
+        const passwordExpiryTime =  90 * 24 * 60 * 60 * 1000; // 90 days
         if (passwordAge > passwordExpiryTime) {
             return res.status(400).json({
                 success: false,
@@ -49,8 +64,8 @@ const authMiddleware = async (req, res, next) => {
         }
 
         req.user = {
-            _id: decoded.id,
-            id: decoded.id,
+            _id: user._id,
+            id: user._id,
             timestamp: getCurrentDateTime()
         };
 

@@ -2,6 +2,7 @@ const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Helper function to format the current date and time
 const formatDate = (date) => {
     return date.toISOString().split('.')[0].replace('T', ' ');
 };
@@ -95,12 +96,16 @@ const userLogin = async (req, res) => {
             { expiresIn: '24h' }
         );
 
+        // Create session
+        req.session.userId = user._id;
+        req.session.email = user.email;
+
         // Log successful login
         console.log('Successful login:', {
             userId: user._id,
             nickname: user.nickname,
             timestamp: formattedCurrentDate,
-            currentUser: process.env.CURRENT_USER || 'system'
+            currentUser: process.env.CURRENT_USER || 'raj2080'
         });
 
         // Send success response
@@ -113,7 +118,8 @@ const userLogin = async (req, res) => {
                     id: user._id,
                     nickname: user.nickname,
                     email: user.email
-                }
+                },
+                sessionId: req.sessionID
             },
             timestamp: formattedCurrentDate
         });
@@ -122,7 +128,7 @@ const userLogin = async (req, res) => {
         console.error('Login error:', {
             error: error.message,
             timestamp: formattedCurrentDate,
-            currentUser: process.env.CURRENT_USER || 'system'
+            currentUser: process.env.CURRENT_USER || 'raj2080'
         });
         
         res.status(500).json({
@@ -134,4 +140,23 @@ const userLogin = async (req, res) => {
     }
 };
 
-module.exports = { userLogin };
+const logoutUser = (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                message: 'Logout failed',
+                error: err,
+                timestamp: formatDate(new Date())
+            });
+        }
+        res.clearCookie('connect.sid');
+        return res.status(200).json({
+            success: true,
+            message: 'Logout successful',
+            timestamp: formatDate(new Date())
+        });
+    });
+};
+
+module.exports = { userLogin, logoutUser };

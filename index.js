@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
+const session = require('express-session');
+const helmet = require('helmet');
 const connectDB = require('./database/database');
 const userRoutes = require('./routes/userRoute');
 const errorHandler = require('./middleware/errorHandler');
@@ -43,6 +45,24 @@ const setupMiddleware = (app) => {
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     app.use(cors(corsOptions));
 
+    // Use Helmet to set various HTTP headers for security
+    app.use(helmet());
+
+    // Session configuration - Set maxAge for inactivity timeout (5 minutes)
+    const sessionMaxAge = 1000 * 60 * 5; // 5 minutes
+
+    app.use(session({
+        secret: process.env.SESSION_SECRET || 'your_secret_key',
+        resave: false,
+        saveUninitialized: true,
+        rolling: true, // Reset the expiration time on each request
+        cookie: {
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+            maxAge: sessionMaxAge
+        }
+    }));
+
     // Security Headers
     app.use((req, res, next) => {
         res.header('Access-Control-Allow-Origin', corsOptions.origin);
@@ -57,7 +77,6 @@ const setupMiddleware = (app) => {
 
     // Serve static files from the 'public' directory
     // app.use(express.static(path.join(__dirname, 'public')));
-
 
     // Add this line to serve files from the uploads directory
     app.use('/uploads', express.static('uploads'));
@@ -193,7 +212,7 @@ const initializeApp = async () => {
     Frontend URL: ${corsOptions.origin}
     Upload Directory: ${path.join(__dirname, 'uploads')}
     Started at: ${new Date().toISOString()}
-    Current User: ${process.env.USER || '2025raj'}
+    Current User: ${process.env.CURRENT_USER || 'raj2080'}
             `);
         });
 
